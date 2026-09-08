@@ -7,7 +7,7 @@ import { useTheme } from '@/theme';
 import { Icon, IconName } from '@/components/Icon';
 import { Card, ToggleSwitch, ConfirmationDialog } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
-import type { ProfileStackParamList } from '@/app/navigation/types';
+import type { ProfileStackParamList } from '@/core/navigation/types';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
 

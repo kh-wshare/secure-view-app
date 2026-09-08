@@ -7,7 +7,7 @@ import { Icon } from '@/components/Icon';
 import { Card, EmptyState, ScreenHeader } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
 import { formatDuration, formatEventTime } from '@/utils/format';
-import type { CamerasStackParamList } from '@/app/navigation/types';
+import type { CamerasStackParamList } from '@/core/navigation/types';
 
 type Rt = RouteProp<CamerasStackParamList, 'Recordings'>;
 

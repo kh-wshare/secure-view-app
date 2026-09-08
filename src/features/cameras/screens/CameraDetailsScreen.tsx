@@ -10,7 +10,7 @@ import { useCameraStore } from '@/store/useCameraStore';
 import { useEventStore } from '@/store/useEventStore';
 import { EVENT_TYPE_ICON, EVENT_TYPE_LABEL, severityColor } from '@/utils/eventMeta';
 import { formatRelativeMinutes } from '@/utils/format';
-import type { CamerasStackParamList } from '@/app/navigation/types';
+import type { CamerasStackParamList } from '@/core/navigation/types';
 
 type Nav = NativeStackNavigationProp<CamerasStackParamList, 'CameraDetails'>;
 type Rt = RouteProp<CamerasStackParamList, 'CameraDetails'>;

@@ -10,7 +10,7 @@ import { useNotificationStore } from '@/store/useNotificationStore';
 import { useEventStore } from '@/store/useEventStore';
 import { EVENT_TYPE_ICON } from '@/utils/eventMeta';
 import { formatDayGroup, formatEventTime } from '@/utils/format';
-import type { NotificationsStackParamList } from '@/app/navigation/types';
+import type { NotificationsStackParamList } from '@/core/navigation/types';
 import type { NotificationItem } from '@/types/domain';
 
 type Nav = NativeStackNavigationProp<NotificationsStackParamList, 'NotificationsFeed'>;

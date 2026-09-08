@@ -8,7 +8,7 @@ import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
 import { Card, StatusBadge, EmptyState } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
-import type { CamerasStackParamList } from '@/app/navigation/types';
+import type { CamerasStackParamList } from '@/core/navigation/types';
 import type { Camera } from '@/types/domain';
 
 type Nav = NativeStackNavigationProp<CamerasStackParamList, 'CameraList'>;

@@ -64,7 +64,7 @@ module.exports = [
     // (see reactnavigation.org/docs/typescript) requires a `declare global`
     // namespace with an empty extending interface — both flagged by rules
     // that otherwise make sense everywhere else in the app.
-    files: ['src/app/navigation/types.ts'],
+    files: ['src/core/navigation/types.ts'],
     rules: {
       '@typescript-eslint/no-namespace': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',

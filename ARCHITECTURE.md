@@ -15,6 +15,14 @@ put it in the shared layer.
 
 ## Folder structure
 
+> **Why `src/core/`, not `src/app/`?** Expo's CLI auto-detects *any* directory
+> literally named `src/app` (or `app/` at the project root) as an Expo Router
+> root — purely by folder name, whether or not the `expo-router` package is
+> installed. This project uses React Navigation, not Expo Router, so that
+> folder is named `core/` instead to avoid silently opting into router
+> detection and the "Using src/app as the root directory for Expo Router"
+> log message. Don't reintroduce a top-level `src/app/` folder.
+
 ```
 src/
   theme/         Design tokens (colors, spacing, radii, typography) + ThemeProvider
@@ -23,7 +31,7 @@ src/
   store/         Zustand stores — one per domain concept (cameras, events, notifications)
   utils/         Small pure helper functions (date formatting, event metadata)
   components/    Shared, reusable UI primitives (Button, Card, Icon, ...)
-  app/
+  core/
     navigation/  React Navigation setup: param types, stacks, tab bar, root navigator
     providers/   App-wide provider composition (theme, query client, safe area, etc.)
   features/
@@ -83,7 +91,7 @@ Don't reach into `src/services/mock/*` from a screen or component — always go
 through the corresponding store, so swapping mock data for a real API later is a
 one-file change.
 
-## Navigation (`src/app/navigation/`)
+## Navigation (`src/core/navigation/`)
 
 The app uses a five-tab bottom navigator (`MainTabNavigator`), each tab backed by
 its own native-stack navigator (`HomeStack`, `CamerasStack`, `EventsStack`,
@@ -135,9 +143,9 @@ but fail to bundle, or vice versa).
 1. Decide which feature it belongs to (or create a new `src/features/<name>/`
    folder with a `screens/` subfolder).
 2. Add the route + params to the relevant `*StackParamList` in
-   `src/app/navigation/types.ts`.
+   `src/core/navigation/types.ts`.
 3. Register the screen component in that stack file
-   (`src/app/navigation/<X>Stack.tsx`).
+   (`src/core/navigation/<X>Stack.tsx`).
 4. Build the screen using `useTheme()` for all styling and existing shared
    components from `@/components` wherever they fit, rather than rebuilding a
    button/card/badge/dialog from scratch.

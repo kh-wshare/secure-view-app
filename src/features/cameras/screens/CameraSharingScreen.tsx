@@ -6,7 +6,7 @@ import { Icon } from '@/components/Icon';
 import { Card, PrimaryButton, ScreenHeader, ConfirmationDialog } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
 import { mockSharedUsers } from '@/services/mock/sharedUsers.mock';
-import type { CamerasStackParamList } from '@/app/navigation/types';
+import type { CamerasStackParamList } from '@/core/navigation/types';
 import type { SharedUser } from '@/types/domain';
 
 type Rt = RouteProp<CamerasStackParamList, 'CameraSharing'>;

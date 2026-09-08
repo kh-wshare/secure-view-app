@@ -7,7 +7,7 @@ import { useTheme } from '@/theme';
 import { Icon, IconName } from '@/components/Icon';
 import { StatusBadge } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
-import type { HomeStackParamList } from '@/app/navigation/types';
+import type { HomeStackParamList } from '@/core/navigation/types';
 
 type Rt = RouteProp<HomeStackParamList, 'LiveView'>;
 

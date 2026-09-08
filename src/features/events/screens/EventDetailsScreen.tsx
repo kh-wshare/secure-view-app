@@ -15,7 +15,7 @@ import {
   severityColor,
 } from '@/utils/eventMeta';
 import { formatDuration, formatEventTime } from '@/utils/format';
-import type { EventsStackParamList } from '@/app/navigation/types';
+import type { EventsStackParamList } from '@/core/navigation/types';
 
 type Nav = NativeStackNavigationProp<EventsStackParamList, 'EventDetails'>;
 type Rt = RouteProp<EventsStackParamList, 'EventDetails'>;

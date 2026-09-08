@@ -19,8 +19,8 @@ import {
   IBMPlexMono_400Regular,
   IBMPlexMono_500Medium,
 } from '@expo-google-fonts/ibm-plex-mono';
-import { AppProviders } from '@/app/providers';
-import { RootNavigator } from '@/app/navigation';
+import { AppProviders } from '@/core/providers';
+import { RootNavigator } from '@/core/navigation';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 

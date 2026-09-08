@@ -9,7 +9,7 @@ import { Card, EmptyState } from '@/components';
 import { useEventStore } from '@/store/useEventStore';
 import { EVENT_TYPE_ICON, EVENT_TYPE_LABEL, severityColor } from '@/utils/eventMeta';
 import { formatEventTime, groupByDay } from '@/utils/format';
-import type { EventsStackParamList } from '@/app/navigation/types';
+import type { EventsStackParamList } from '@/core/navigation/types';
 import type { EventType } from '@/types/domain';
 
 type Nav = NativeStackNavigationProp<EventsStackParamList, 'EventsFeed'>;

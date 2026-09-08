@@ -12,7 +12,7 @@ import { useEventStore } from '@/store/useEventStore';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { EVENT_TYPE_ICON, EVENT_TYPE_LABEL, severityColor } from '@/utils/eventMeta';
 import { formatRelativeMinutes } from '@/utils/format';
-import type { HomeStackParamList } from '@/app/navigation/types';
+import type { HomeStackParamList } from '@/core/navigation/types';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'HomeDashboard'>;
 
