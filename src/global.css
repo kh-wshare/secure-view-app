@@ -1,0 +1,148 @@
+@import 'tailwindcss';
+@import 'uniwind';
+@import 'heroui-native/styles';
+@source './node_modules/heroui-native/lib';
+
+/**
+ * SecureView's HeroUI Native / Uniwind theme.
+ *
+ * These CSS custom properties are HeroUI Native's own semantic token names
+ * (see https://heroui.com/en/docs/native/getting-started/theming) — we are
+ * not inventing a parallel token system, just pointing HeroUI's existing
+ * tokens at the exact hex values from src/theme/colors.ts so HeroUI-styled
+ * components (Button, Card, Chip, Switch, Dialog, Skeleton, Typography)
+ * match the rest of the app pixel-for-pixel.
+ *
+ * IMPORTANT: keep this file's colors in sync with src/theme/colors.ts.
+ * They are intentionally duplicated (one CSS, one JS) because Uniwind's
+ * theme lives outside React — see src/theme/ThemeProvider.tsx, which calls
+ * Uniwind.setTheme() whenever the app's own dark/light mode changes so both
+ * systems always agree on which mode is active.
+ */
+@layer theme {
+  @variant light {
+    /* Surfaces */
+    --background: #f5f7f8;
+    --background-secondary: #ffffff;
+    --background-tertiary: #eef1f3;
+    --surface: #ffffff;
+    --surface-secondary: #eef1f3;
+    --surface-tertiary: #eef1f3;
+    --default: #eef1f3;
+    --default-foreground: #5b6670;
+    --segment: #eef1f3;
+
+    /* Content */
+    --foreground: #0e1418;
+    --muted: #5b6670;
+    --link: #0c8e77;
+
+    /* Structural */
+    --border: rgba(10, 20, 28, 0.08);
+    --separator: rgba(10, 20, 28, 0.08);
+    --overlay: rgba(4, 8, 10, 0.6);
+    --overlay-foreground: #f2f5f7;
+    --backdrop: rgba(4, 8, 10, 0.6);
+
+    /* Form fields */
+    --field-background: #eef1f3;
+    --field-background-hover: #eef1f3;
+    --field-background-focus: #ffffff;
+    --field-foreground: #0e1418;
+    --field-placeholder: #8b96a0;
+    --field-border: rgba(10, 20, 28, 0.08);
+
+    /* Semantic — light mode uses the darker/"OnLight" hues from colors.ts
+       (needed for contrast on a light background as text), so their
+       -foreground pairing flips to white for solid fills. */
+    --accent: #0c8e77;
+    --accent-hover: #0c8e77;
+    --accent-foreground: #ffffff;
+    --success: #0c8e77;
+    --success-hover: #0c8e77;
+    --success-foreground: #ffffff;
+    --warning: #966200;
+    --warning-hover: #966200;
+    --warning-foreground: #ffffff;
+    --danger: #c4262b;
+    --danger-hover: #c4262b;
+    --danger-foreground: #ffffff;
+  }
+
+  @variant dark {
+    /* Surfaces */
+    --background: #0a0e12;
+    --background-secondary: #12171d;
+    --background-tertiary: #1a2129;
+    --surface: #12171d;
+    --surface-secondary: #1a2129;
+    --surface-tertiary: #1a2129;
+    --default: #1a2129;
+    --default-foreground: #93a0ac;
+    --segment: #1a2129;
+
+    /* Content */
+    --foreground: #f2f5f7;
+    --muted: #93a0ac;
+    --link: #22d6b5;
+
+    /* Structural */
+    --border: rgba(255, 255, 255, 0.08);
+    --separator: rgba(255, 255, 255, 0.08);
+    --overlay: rgba(4, 8, 10, 0.6);
+    --overlay-foreground: #f2f5f7;
+    --backdrop: rgba(4, 8, 10, 0.6);
+
+    /* Form fields */
+    --field-background: #1a2129;
+    --field-background-hover: #1a2129;
+    --field-background-focus: #12171d;
+    --field-foreground: #f2f5f7;
+    --field-placeholder: #57626d;
+    --field-border: rgba(255, 255, 255, 0.08);
+
+    /* Semantic — dark mode uses the bright hues from colors.ts directly,
+       which are light enough that a near-black foreground reads best. */
+    --accent: #22d6b5;
+    --accent-hover: #22d6b5;
+    --accent-foreground: #06110e;
+    --success: #22d6b5;
+    --success-hover: #22d6b5;
+    --success-foreground: #06110e;
+    --warning: #ffb020;
+    --warning-hover: #ffb020;
+    --warning-foreground: #06110e;
+    --danger: #ff5a5f;
+    --danger-hover: #ff5a5f;
+    --danger-foreground: #06110e;
+  }
+}
+
+/* Custom "info" status (vehicle-detected events, informational badges) —
+   not part of HeroUI's default semantic set, so it needs the extra
+   `@theme inline` step to become usable as bg-info / text-info-foreground. */
+@layer theme {
+  @variant light {
+    --info: #2258c7;
+    --info-foreground: #ffffff;
+  }
+  @variant dark {
+    --info: #4c8dff;
+    --info-foreground: #06110e;
+  }
+}
+
+@theme inline {
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+}
+
+/* Match HeroUI Native's Typography/Button/Chip label font to the app's
+   existing body typeface (see src/theme/typography.ts and the
+   @expo-google-fonts weights loaded in App.tsx). */
+@theme {
+  --font-normal: 'Manrope_400Regular';
+  --font-medium: 'Manrope_500Medium';
+  --font-semibold: 'Manrope_600SemiBold';
+  --font-bold: 'Manrope_700Bold';
+}

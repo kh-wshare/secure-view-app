@@ -1,8 +1,9 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme } from '@/theme';
+import { Button, Text as HeroText } from 'heroui-native';
 import { Icon, IconName } from '@/components/Icon';
+import { useTheme } from '@/theme';
 
 export type ScreenHeaderAction = {
   icon: IconName;
@@ -32,93 +33,56 @@ export function ScreenHeader({
   actions = [],
   transparent = false,
 }: ScreenHeaderProps) {
-  const { colors, spacing, fontFamily } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
     <View
-      style={[
-        styles.wrap,
-        {
-          paddingTop: insets.top + spacing.xs,
-          paddingHorizontal: spacing.md,
-          paddingBottom: spacing.sm,
-          backgroundColor: transparent ? 'transparent' : colors.bg,
-          borderBottomColor: colors.border,
-          borderBottomWidth: transparent ? 0 : StyleSheet.hairlineWidth,
-        },
-      ]}
+      className={`flex-row items-center px-4 pb-2.5 ${
+        transparent ? 'bg-transparent' : 'bg-background border-b border-border'
+      }`}
+      style={{ paddingTop: insets.top + 4 }}
     >
-      <View style={styles.side}>
+      <View className="min-w-10 flex-row items-center">
         {onBack && (
-          <Pressable
+          <Button
+            variant="secondary"
+            size="sm"
+            isIconOnly
             onPress={onBack}
-            hitSlop={10}
-            style={[styles.iconButton, { backgroundColor: colors.bgElevated2 }]}
-            accessibilityRole="button"
             accessibilityLabel="Go back"
           >
             <Icon name="arrowLeft" size={18} color={colors.textPrimary} />
-          </Pressable>
+          </Button>
         )}
       </View>
 
-      <View style={styles.center}>
-        <Text
-          numberOfLines={1}
-          style={[
-            styles.title,
-            { fontFamily: fontFamily.displaySemibold, color: colors.textPrimary },
-          ]}
-        >
+      <View className="flex-1 items-center">
+        <HeroText type="h6" numberOfLines={1}>
           {title}
-        </Text>
+        </HeroText>
         {subtitle ? (
-          <Text
-            numberOfLines={1}
-            style={[
-              styles.subtitle,
-              { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
-            ]}
-          >
+          <HeroText type="body-xs" color="muted" numberOfLines={1} className="mt-0.5">
             {subtitle}
-          </Text>
+          </HeroText>
         ) : null}
       </View>
 
-      <View style={[styles.side, styles.sideEnd]}>
+      <View className="min-w-10 flex-row items-center justify-end">
         {actions.map((a) => (
-          <Pressable
+          <Button
             key={a.accessibilityLabel}
+            variant="secondary"
+            size="sm"
+            isIconOnly
             onPress={a.onPress}
-            hitSlop={10}
-            style={[
-              styles.iconButton,
-              { backgroundColor: colors.bgElevated2, marginLeft: spacing.xs },
-            ]}
-            accessibilityRole="button"
             accessibilityLabel={a.accessibilityLabel}
+            className="ml-2"
           >
             <Icon name={a.icon} size={18} color={colors.textPrimary} />
-          </Pressable>
+          </Button>
         ))}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', alignItems: 'center' },
-  side: { minWidth: 40, flexDirection: 'row', alignItems: 'center' },
-  sideEnd: { justifyContent: 'flex-end' },
-  center: { flex: 1, alignItems: 'center' },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 16 },
-  subtitle: { fontSize: 11.5, marginTop: 1 },
-});

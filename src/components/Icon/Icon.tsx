@@ -1,27 +1,28 @@
 import React from 'react';
-import Svg, { Path } from 'react-native-svg';
-import { iconPaths, IconName } from './paths';
+import { SvgXml } from 'react-native-svg';
+import { iconData, IconName } from './paths';
 
 export type IconProps = {
   name: IconName;
   size?: number;
   color: string;
+  /**
+   * Retained for backwards compatibility with existing call sites. Solar
+   * glyphs (see paths.ts) bake in their own stroke weight per style, so
+   * this no longer has an effect — no current call site overrides it.
+   */
   strokeWidth?: number;
+  /** Use the Solar "Bold" variant instead of "Linear", where available. */
   filled?: boolean;
 };
 
-/** Shared outline icon. Always pass an explicit `color` from theme.colors. */
-export function Icon({ name, size = 20, color, strokeWidth = 1.75, filled = false }: IconProps) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d={iconPaths[name]}
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill={filled ? color : 'none'}
-      />
-    </Svg>
+/** Shared outline icon, sourced from the Solar icon set. Always pass an explicit `color` from theme.colors. */
+export function Icon({ name, size = 20, color, filled = false }: IconProps) {
+  const entry = iconData[name];
+  const body = (filled && 'boldBody' in entry && entry.boldBody) ? entry.boldBody : entry.body;
+  const xml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">${body}</svg>`.replace(
+    /currentColor/g,
+    color,
   );
+  return <SvgXml xml={xml} width={size} height={size} />;
 }

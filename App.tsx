@@ -1,3 +1,5 @@
+import './src/global.css';
+
 import React, { useCallback } from 'react';
 import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';

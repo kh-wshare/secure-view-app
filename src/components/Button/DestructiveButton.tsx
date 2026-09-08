@@ -1,43 +1,20 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { useTheme } from '@/theme';
+import { Button } from 'heroui-native';
 
 export type DestructiveButtonProps = {
   label: string;
   onPress?: () => void;
 };
 
+/**
+ * Soft/tinted destructive action button (danger-tinted background + border,
+ * danger-colored label) — HeroUI's "danger-soft" variant matches this app's
+ * existing destructive-but-not-alarming button style exactly.
+ */
 export function DestructiveButton({ label, onPress }: DestructiveButtonProps) {
-  const { colors, radii, fontFamily } = useTheme();
-
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          backgroundColor: colors.liveTint,
-          borderColor: colors.live,
-          borderRadius: radii.md,
-          opacity: pressed ? 0.8 : 1,
-        },
-      ]}
-      accessibilityRole="button"
-    >
-      <Text style={[styles.label, { fontFamily: fontFamily.bodyBold, color: colors.live }]}>
-        {label}
-      </Text>
-    </Pressable>
+    <Button variant="danger-soft" onPress={onPress}>
+      <Button.Label>{label}</Button.Label>
+    </Button>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    minHeight: 52,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  label: { fontSize: 14 },
-});

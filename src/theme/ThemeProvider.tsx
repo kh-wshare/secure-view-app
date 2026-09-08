@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Appearance } from 'react-native';
+import { Uniwind } from 'uniwind';
 import { buildThemeColors, ThemeColors } from './colors';
 import { spacing } from './spacing';
 import { radii } from './radii';
@@ -42,6 +43,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     });
   }, []);
+
+  // Keep HeroUI Native / Uniwind's theme (src/global.css's `light`/`dark`
+  // variants) in lockstep with our own mode state, which stays the single
+  // source of truth (persisted here via AsyncStorage, toggled from
+  // Profile). Without this, HeroUI-styled components would follow the OS
+  // appearance instead of the app's explicit dark/light choice.
+  useEffect(() => {
+    Uniwind.setTheme(mode);
+  }, [mode]);
 
   const setMode = useCallback((next: ThemeMode) => {
     setModeState(next);

@@ -3,6 +3,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
+import { HeroUINativeProvider } from 'heroui-native';
 import { ThemeProvider, useTheme } from '@/theme';
 
 function StatusBarBridge() {
@@ -11,9 +12,15 @@ function StatusBarBridge() {
 }
 
 /**
- * Root provider stack. Order matters: gesture handler + safe area must wrap
- * everything (navigation and reanimated gestures depend on them); theme
- * wraps the query client only because query error UI reads theme colors.
+ * Root provider stack. Order matters:
+ * - GestureHandlerRootView + SafeAreaProvider must wrap everything
+ *   (navigation, reanimated gestures, and HeroUINativeProvider's internal
+ *   SafeAreaListener all depend on them).
+ * - ThemeProvider owns dark/light mode and pushes it into Uniwind (see
+ *   src/theme/ThemeProvider.tsx) — it must be an ancestor of
+ *   HeroUINativeProvider so HeroUI Native components pick up the same mode.
+ * - HeroUINativeProvider wraps `children` (not just a leaf) because it also
+ *   renders the PortalHost that Dialog/Toast/Popover mount into.
  */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const queryClient = useMemo(
@@ -30,7 +37,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <ThemeProvider>
           <QueryClientProvider client={queryClient}>
             <StatusBarBridge />
-            {children}
+            <HeroUINativeProvider>{children}</HeroUINativeProvider>
           </QueryClientProvider>
         </ThemeProvider>
       </SafeAreaProvider>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Button, Text as HeroText } from 'heroui-native';
 import { useTheme } from '@/theme';
 import { Icon, IconName } from '@/components/Icon';
 
@@ -14,78 +15,27 @@ export type ErrorStateProps = {
 
 /** Reusable error state: camera offline, connection lost, unable to load video, etc. */
 export function ErrorState({ icon, title, message, actions = [] }: ErrorStateProps) {
-  const { colors, fontFamily, radii } = useTheme();
+  const { colors } = useTheme();
   return (
-    <View
-      style={[
-        styles.wrap,
-        {
-          backgroundColor: colors.bgElevated,
-          borderColor: colors.liveTint,
-          borderRadius: radii.lg,
-        },
-      ]}
-    >
-      <View style={[styles.iconCircle, { backgroundColor: colors.liveTint }]}>
+    <View className="items-center gap-3 rounded-xl border border-danger/25 bg-surface p-6">
+      <View className="size-12 items-center justify-center rounded-full bg-danger/15">
         <Icon name={icon} size={21} color={colors.live} />
       </View>
-      <Text
-        style={[
-          styles.title,
-          { fontFamily: fontFamily.displaySemibold, color: colors.textPrimary },
-        ]}
-      >
+      <HeroText type="h6" align="center">
         {title}
-      </Text>
-      <Text
-        style={[
-          styles.message,
-          { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
-        ]}
-      >
+      </HeroText>
+      <HeroText type="body-sm" color="muted" align="center">
         {message}
-      </Text>
+      </HeroText>
       {actions.length > 0 && (
-        <View style={styles.actions}>
+        <View className="mt-1 flex-row gap-2">
           {actions.map((a) => (
-            <Text
-              key={a.label}
-              onPress={a.onPress}
-              style={[
-                styles.actionBtn,
-                {
-                  fontFamily: fontFamily.bodyBold,
-                  color: a.primary ? '#06110E' : colors.textPrimary,
-                  backgroundColor: a.primary ? colors.brand : colors.bgElevated2,
-                },
-              ]}
-            >
-              {a.label}
-            </Text>
+            <Button key={a.label} variant={a.primary ? 'primary' : 'secondary'} size="sm" onPress={a.onPress}>
+              <Button.Label>{a.label}</Button.Label>
+            </Button>
           ))}
         </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { borderWidth: 1, alignItems: 'center', padding: 26, gap: 12 },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 14.5, textAlign: 'center' },
-  message: { fontSize: 12, textAlign: 'center', lineHeight: 17 },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  actionBtn: {
-    fontSize: 12,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
-});

@@ -1,6 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import { useTheme } from '@/theme';
+import { ActivityIndicator } from 'react-native';
+import { Button } from 'heroui-native';
 
 export type PrimaryButtonProps = {
   label: string;
@@ -9,39 +9,22 @@ export type PrimaryButtonProps = {
   loading?: boolean;
 };
 
+/**
+ * The app's main CTA button — thin wrapper around HeroUI Native's
+ * <Button variant="primary">, which reads the `--accent` / `--accent-foreground`
+ * tokens from src/global.css (mapped to the brand teal everywhere else in
+ * the design system). Kept as its own component (rather than using
+ * heroui-native's Button directly in screens) so the `loading` behavior
+ * and the app's button API stay stable if we ever swap the underlying
+ * implementation again.
+ */
 export function PrimaryButton({ label, onPress, disabled, loading }: PrimaryButtonProps) {
-  const { colors, radii, fontFamily } = useTheme();
   const isInactive = disabled || loading;
 
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={isInactive}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          backgroundColor: colors.brand,
-          borderRadius: radii.md,
-          opacity: isInactive ? 0.45 : pressed ? 0.85 : 1,
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: isInactive }}
-    >
-      {loading && <ActivityIndicator size="small" color="#06110E" style={styles.spinner} />}
-      <Text style={[styles.label, { fontFamily: fontFamily.bodyBold }]}>{label}</Text>
-    </Pressable>
+    <Button variant="primary" onPress={onPress} isDisabled={isInactive}>
+      {loading && <ActivityIndicator size="small" color="#06110E" />}
+      <Button.Label>{label}</Button.Label>
+    </Button>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  label: { fontSize: 15, color: '#06110E' },
-  spinner: { marginRight: 8 },
-});

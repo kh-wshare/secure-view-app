@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Button, Dialog } from 'heroui-native';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
 
@@ -31,126 +32,47 @@ export function ConfirmationDialog({
   onConfirm,
   onCancel,
 }: ConfirmationDialogProps) {
-  const { colors, radii, spacing, fontFamily } = useTheme();
+  const { colors } = useTheme();
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onCancel}
-      statusBarTranslucent
+    <Dialog
+      isOpen={visible}
+      onOpenChange={(open) => {
+        // Fires for backdrop taps and swipe-to-dismiss too, not just the
+        // explicit Cancel button — treat every non-confirm close as cancel.
+        if (!open) onCancel();
+      }}
     >
-      <View style={styles.backdrop}>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onCancel}
-          accessibilityLabel="Dismiss dialog"
-        />
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: colors.bgElevated,
-              borderColor: colors.border,
-              borderRadius: radii.lg,
-              padding: spacing.xl,
-              gap: spacing.md,
-            },
-          ]}
-        >
+      <Dialog.Portal>
+        <Dialog.Overlay />
+        <Dialog.Content isSwipeable={false}>
           <View
-            style={[
-              styles.iconCircle,
-              { backgroundColor: destructive ? colors.liveTint : colors.brandTint },
-            ]}
+            className={`self-center size-12 items-center justify-center rounded-full ${
+              destructive ? 'bg-danger/15' : 'bg-accent/15'
+            }`}
           >
             <Icon name="alertTriangle" size={22} color={destructive ? colors.live : colors.brand} />
           </View>
 
-          <Text
-            style={[
-              styles.title,
-              { fontFamily: fontFamily.displaySemibold, color: colors.textPrimary },
-            ]}
-          >
-            {title}
-          </Text>
-          <Text
-            style={[
-              styles.message,
-              { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
-            ]}
-          >
-            {message}
-          </Text>
-
-          <View style={[styles.actions, { gap: spacing.sm }]}>
-            <Pressable
-              onPress={onCancel}
-              style={({ pressed }) => [
-                styles.button,
-                {
-                  backgroundColor: colors.bgElevated2,
-                  borderRadius: radii.md,
-                  opacity: pressed ? 0.85 : 1,
-                },
-              ]}
-              accessibilityRole="button"
-            >
-              <Text
-                style={[
-                  styles.buttonLabel,
-                  { fontFamily: fontFamily.bodyBold, color: colors.textPrimary },
-                ]}
-              >
-                {cancelLabel}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={onConfirm}
-              style={({ pressed }) => [
-                styles.button,
-                {
-                  backgroundColor: destructive ? colors.live : colors.brand,
-                  borderRadius: radii.md,
-                  opacity: pressed ? 0.85 : 1,
-                },
-              ]}
-              accessibilityRole="button"
-            >
-              <Text
-                style={[styles.buttonLabel, { fontFamily: fontFamily.bodyBold, color: '#06110E' }]}
-              >
-                {confirmLabel}
-              </Text>
-            </Pressable>
+          <View className="mt-4 mb-1 gap-1.5">
+            <Dialog.Title className="text-center">{title}</Dialog.Title>
+            <Dialog.Description className="text-center">{message}</Dialog.Description>
           </View>
-        </View>
-      </View>
-    </Modal>
+
+          <View className="mt-5 flex-row gap-3">
+            <Button variant="secondary" className="flex-1" onPress={onCancel}>
+              <Button.Label>{cancelLabel}</Button.Label>
+            </Button>
+            <Button
+              variant={destructive ? 'danger' : 'primary'}
+              className="flex-1"
+              onPress={onConfirm}
+            >
+              <Button.Label>{confirmLabel}</Button.Label>
+            </Button>
+          </View>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(4,8,10,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
-  },
-  card: { width: '100%', maxWidth: 360, borderWidth: 1, alignItems: 'center' },
-  iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 16, textAlign: 'center' },
-  message: { fontSize: 13, textAlign: 'center', lineHeight: 19 },
-  actions: { flexDirection: 'row', width: '100%' },
-  button: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  buttonLabel: { fontSize: 14 },
-});

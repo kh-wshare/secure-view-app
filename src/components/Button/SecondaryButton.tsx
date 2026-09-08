@@ -1,6 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { useTheme } from '@/theme';
+import { Button } from 'heroui-native';
 
 export type SecondaryButtonProps = {
   label: string;
@@ -8,41 +7,11 @@ export type SecondaryButtonProps = {
   disabled?: boolean;
 };
 
+/** Bordered, neutral-background button for secondary actions ("Back", "Cancel", "Done"). */
 export function SecondaryButton({ label, onPress, disabled }: SecondaryButtonProps) {
-  const { colors, radii, fontFamily } = useTheme();
-
   return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          backgroundColor: colors.bgElevated,
-          borderColor: colors.borderStrong,
-          borderRadius: radii.md,
-          opacity: disabled ? 0.4 : pressed ? 0.8 : 1,
-        },
-      ]}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-    >
-      <Text
-        style={[styles.label, { fontFamily: fontFamily.bodySemibold, color: colors.textPrimary }]}
-      >
-        {label}
-      </Text>
-    </Pressable>
+    <Button variant="secondary" onPress={onPress} isDisabled={disabled}>
+      <Button.Label>{label}</Button.Label>
+    </Button>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    minHeight: 52,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-  },
-  label: { fontSize: 14 },
-});
