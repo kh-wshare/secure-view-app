@@ -48,5 +48,8 @@ Figma design system. See `ARCHITECTURE.md` for what to do when a real API is rea
 
 ## Requirements
 
-- Node.js 20+
+- Node.js — `^22.13.0 || ^24.3.0 || >=26.0.0` (react-native 0.87's actual requirement,
+  enforced via the `engines` field in `package.json`). This repo is pinned to
+  **26.7.0** for local development via `.nvmrc` / `.node-version` — run `nvm use`
+  (or the equivalent for fnm/asdf/Volta) after cloning.
 - Expo Go app (for quick device testing) or Xcode / Android Studio for simulators
