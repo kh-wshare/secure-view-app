@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "SecureView",
+    "slug": "secure-view-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "scheme": "secureview",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.khwshare.secureview",
+      "infoPlist": {
+        "NSCameraUsageDescription": "SecureView uses the camera to scan a QR code when adding a new security camera.",
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "package": "com.khwshare.secureview",
+      "permissions": ["CAMERA", "RECORD_AUDIO"]
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#22D6B5"
+        }
+      ]
+    ]
+  }
+}
