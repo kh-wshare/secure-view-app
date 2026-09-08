@@ -6,18 +6,30 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "secureview",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.khwshare.secureview",
       "infoPlist": {
         "NSCameraUsageDescription": "SecureView uses the camera to scan a QR code when adding a new security camera.",
-        "UIBackgroundModes": ["audio"]
-      }
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      },
+      "icon": "./assets/icon.png"
     },
     "android": {
       "package": "com.khwshare.secureview",
-      "permissions": ["CAMERA", "RECORD_AUDIO"]
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0A0E12"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-camera",
@@ -29,6 +41,7 @@
           "color": "#22D6B5"
         }
       ]
-    ]
+    ],
+    "icon": "./assets/icon.png"
   }
 }
