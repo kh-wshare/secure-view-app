@@ -99,7 +99,7 @@ export function CameraListScreen() {
         }}
         refreshControl={
           <RefreshControl
-            // refreshing={status === 'loading' && cameras.length > 0}
+            refreshing={status === 'loading' && cameras.length > 0}
             onRefresh={fetchCameras}
             tintColor={colors.brand}
           />
