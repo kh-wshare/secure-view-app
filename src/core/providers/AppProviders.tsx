@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
 import { HeroUINativeProvider } from 'heroui-native';
 import { ThemeProvider, useTheme } from '@/theme';
+import { AuthProvider } from '@/core/auth/AuthContext';
 
 function StatusBarBridge() {
   const { mode } = useTheme();
@@ -21,6 +22,10 @@ function StatusBarBridge() {
  *   HeroUINativeProvider so HeroUI Native components pick up the same mode.
  * - HeroUINativeProvider wraps `children` (not just a leaf) because it also
  *   renders the PortalHost that Dialog/Toast/Popover mount into.
+ * - AuthProvider sits inside QueryClientProvider (it doesn't use React Query
+ *   itself today, but session bootstrap is exactly the kind of thing that
+ *   could move there) and wraps `children` so RootNavigator can read auth
+ *   status to decide between the Auth stack and the main tabs.
  */
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const queryClient = useMemo(
@@ -37,7 +42,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <ThemeProvider>
           <QueryClientProvider client={queryClient}>
             <StatusBarBridge />
-            <HeroUINativeProvider>{children}</HeroUINativeProvider>
+            <AuthProvider>
+              <HeroUINativeProvider>{children}</HeroUINativeProvider>
+            </AuthProvider>
           </QueryClientProvider>
         </ThemeProvider>
       </SafeAreaProvider>

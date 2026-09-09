@@ -11,6 +11,9 @@ const rnGlobals = {
   __DEV__: 'readonly',
   console: 'readonly',
   fetch: 'readonly',
+  Response: 'readonly',
+  URL: 'readonly',
+  URLSearchParams: 'readonly',
   setTimeout: 'readonly',
   clearTimeout: 'readonly',
   setInterval: 'readonly',
@@ -74,7 +77,12 @@ module.exports = [
     // Root-level CommonJS config files (Node, not the RN runtime).
     files: ['*.config.js', '.prettierrc.js'],
     languageOptions: {
-      globals: { module: 'writable', require: 'readonly', process: 'readonly', __dirname: 'readonly' },
+      globals: {
+        module: 'writable',
+        require: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+      },
     },
   },
   { ignores: ['node_modules/**', '.expo/**', 'dist/**'] },

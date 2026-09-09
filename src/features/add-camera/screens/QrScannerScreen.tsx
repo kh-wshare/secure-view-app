@@ -2,24 +2,53 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
 import { PrimaryButton } from '@/components';
+import type { CamerasStackParamList } from '@/core/navigation/types';
+
+type Nav = NativeStackNavigationProp<CamerasStackParamList, 'QrScanner'>;
+
+/** Parses `securitycam://provision?device_id=...&token=...` (the QR payload minted by `POST /cameras/provisioning-token`, per the Postman collection). */
+function parseProvisioningPayload(data: string): { deviceId: string; token: string } | null {
+  try {
+    const url = new URL(data);
+    const deviceId = url.searchParams.get('device_id');
+    const token = url.searchParams.get('token');
+    if (!deviceId || !token) return null;
+    return { deviceId, token };
+  } catch {
+    return null;
+  }
+}
 
 export function QrScannerScreen() {
   const { colors, spacing, radii, fontFamily } = useTheme();
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<Nav>();
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const [invalid, setInvalid] = useState(false);
 
-  const handleScan = (_result: BarcodeScanningResult) => {
+  const handleScan = (result: BarcodeScanningResult) => {
     if (scanned) return;
+    const parsed = parseProvisioningPayload(result.data);
+    if (!parsed) {
+      setInvalid(true);
+      setTimeout(() => setInvalid(false), 1200);
+      return;
+    }
     setScanned(true);
-    // In a real integration this would validate _result.data against the
-    // camera-pairing payload and register the device with the backend.
-    setTimeout(() => navigation.goBack(), 900);
+    setTimeout(
+      () =>
+        navigation.navigate('AddCamera', {
+          scannedDeviceId: parsed.deviceId,
+          scannedProvisioningToken: parsed.token,
+        }),
+      600,
+    );
   };
 
   if (!permission) {
@@ -87,13 +116,21 @@ export function QrScannerScreen() {
           style={[
             styles.frame,
             {
-              borderColor: scanned ? colors.brand : 'rgba(255,255,255,0.85)',
+              borderColor: invalid
+                ? colors.live
+                : scanned
+                  ? colors.brand
+                  : 'rgba(255,255,255,0.85)',
               borderRadius: radii.lg,
             },
           ]}
         />
         <Text style={styles.helperText}>
-          {scanned ? 'Camera found!' : 'Align the QR code within the frame'}
+          {scanned
+            ? 'Camera found!'
+            : invalid
+              ? "That code isn't a SecureView pairing code"
+              : 'Align the QR code within the frame'}
         </Text>
       </View>
     </View>

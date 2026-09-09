@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,8 +25,13 @@ export function EventDetailsScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
   const event = useEventStore((s) => s.getById(route.params.eventId));
+  const fetchEvent = useEventStore((s) => s.fetchEvent);
   const markReviewed = useEventStore((s) => s.markReviewed);
   const camera = useCameraStore((s) => (event ? s.getById(event.cameraId) : undefined));
+
+  useEffect(() => {
+    if (!event) fetchEvent(route.params.eventId);
+  }, [event, fetchEvent, route.params.eventId]);
 
   if (!event) {
     return (

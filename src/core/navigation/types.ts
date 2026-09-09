@@ -1,5 +1,11 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
+/** Signed-out stack: login + registration. */
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+};
+
 /** Home tab stack: dashboard + the screens reached only from it. */
 export type HomeStackParamList = {
   HomeDashboard: undefined;
@@ -12,7 +18,7 @@ export type CamerasStackParamList = {
   CameraList: undefined;
   CameraDetails: { cameraId: string };
   LiveView: { cameraId: string };
-  AddCamera: undefined;
+  AddCamera: { scannedDeviceId?: string; scannedProvisioningToken?: string } | undefined;
   QrScanner: undefined;
   CameraSharing: { cameraId: string };
   Recordings: { cameraId: string };
@@ -46,6 +52,7 @@ export type MainTabParamList = {
 };
 
 export type RootStackParamList = {
+  Auth: NavigatorScreenParams<AuthStackParamList>;
   MainTabs: NavigatorScreenParams<MainTabParamList>;
 };
 

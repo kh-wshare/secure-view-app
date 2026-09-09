@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/theme';
@@ -22,8 +22,19 @@ export function HomeDashboardScreen() {
   const navigation = useNavigation<Nav>();
 
   const cameras = useCameraStore((s) => s.cameras);
+  const fetchCameras = useCameraStore((s) => s.fetchCameras);
   const events = useEventStore((s) => s.events);
+  const fetchEvents = useEventStore((s) => s.fetchEvents);
   const unreadCount = useNotificationStore((s) => s.notifications.filter((n) => !n.read).length);
+  const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCameras();
+      fetchEvents({ limit: 20 });
+      fetchNotifications({ unread: true, limit: 50 });
+    }, [fetchCameras, fetchEvents, fetchNotifications]),
+  );
 
   const onlineCount = cameras.filter((c) => c.status === 'online').length;
   const offlineCount = cameras.length - onlineCount;

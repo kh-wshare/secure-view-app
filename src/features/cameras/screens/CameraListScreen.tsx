@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Button, TagGroup } from 'heroui-native';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
-import { Card, StatusBadge, EmptyState } from '@/components';
+import { Card, StatusBadge, EmptyState, ErrorState, LoadingSkeleton } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
 import type { CamerasStackParamList } from '@/core/navigation/types';
 import type { Camera } from '@/types/domain';
@@ -15,13 +16,29 @@ type Nav = NativeStackNavigationProp<CamerasStackParamList, 'CameraList'>;
 
 type Filter = 'all' | 'online' | 'offline' | 'favorites';
 
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'online', label: 'Online' },
+  { key: 'offline', label: 'Offline' },
+  { key: 'favorites', label: 'Favorites' },
+];
+
 export function CameraListScreen() {
   const { colors, spacing, radii, fontFamily } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const cameras = useCameraStore((s) => s.cameras);
+  const status = useCameraStore((s) => s.status);
+  const error = useCameraStore((s) => s.error);
+  const fetchCameras = useCameraStore((s) => s.fetchCameras);
   const toggleFavorite = useCameraStore((s) => s.toggleFavorite);
   const [filter, setFilter] = useState<Filter>('all');
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCameras();
+    }, [fetchCameras]),
+  );
 
   const filtered = cameras.filter((c) => {
     if (filter === 'online') return c.status === 'online';
@@ -40,61 +57,33 @@ export function CameraListScreen() {
         >
           Cameras
         </Text>
-        <Pressable
+        <Button
+          variant="primary"
+          isIconOnly
           onPress={() => navigation.navigate('AddCamera')}
-          style={[styles.addButton, { backgroundColor: colors.brand, borderRadius: radii.full }]}
-          accessibilityRole="button"
           accessibilityLabel="Add camera"
         >
           <Icon name="plus" size={20} color="#06110E" />
-        </Pressable>
+        </Button>
       </View>
 
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={['all', 'online', 'offline', 'favorites'] as Filter[]}
-        keyExtractor={(f) => f}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.md,
-          gap: spacing.xs,
-          paddingVertical: spacing.sm,
+      <TagGroup
+        selectionMode="single"
+        selectedKeys={new Set([filter])}
+        onSelectionChange={(keys) => {
+          const next = Array.from(keys)[0];
+          if (typeof next === 'string') setFilter(next as Filter);
         }}
-        renderItem={({ item }) => {
-          const active = filter === item;
-          return (
-            <Pressable
-              onPress={() => setFilter(item)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: active ? colors.brandTint : colors.bgElevated2,
-                  borderColor: active ? colors.brand : colors.border,
-                  borderRadius: radii.full,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.chipLabel,
-                  {
-                    fontFamily: fontFamily.bodySemibold,
-                    color: active ? colors.brand : colors.textSecondary,
-                  },
-                ]}
-              >
-                {item === 'all'
-                  ? 'All'
-                  : item === 'online'
-                    ? 'Online'
-                    : item === 'offline'
-                      ? 'Offline'
-                      : 'Favorites'}
-              </Text>
-            </Pressable>
-          );
-        }}
-      />
+        style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}
+      >
+        <TagGroup.List>
+          {FILTERS.map((f) => (
+            <TagGroup.Item key={f.key} id={f.key}>
+              {f.label}
+            </TagGroup.Item>
+          ))}
+        </TagGroup.List>
+      </TagGroup>
 
       <FlatList
         data={filtered}
@@ -102,17 +91,39 @@ export function CameraListScreen() {
         numColumns={2}
         columnWrapperStyle={{ gap: spacing.sm }}
         contentContainerStyle={{
+          flexGrow: 1,
           padding: spacing.md,
           paddingTop: spacing.xs,
           gap: spacing.sm,
           paddingBottom: 140,
         }}
-        ListEmptyComponent={
-          <EmptyState
-            icon="cameraOff"
-            title="No cameras match"
-            message="Try a different filter, or add a new camera to your account."
+        refreshControl={
+          <RefreshControl
+            // refreshing={status === 'loading' && cameras.length > 0}
+            onRefresh={fetchCameras}
+            tintColor={colors.brand}
           />
+        }
+        ListEmptyComponent={
+          status === 'loading' ? (
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <LoadingSkeleton width="48%" height={150} radius={radii.lg} />
+              <LoadingSkeleton width="48%" height={150} radius={radii.lg} />
+            </View>
+          ) : status === 'error' ? (
+            <ErrorState
+              icon="alertTriangle"
+              title="Couldn't load cameras"
+              message={error ?? 'Something went wrong.'}
+              actions={[{ label: 'Retry', onPress: fetchCameras, primary: true }]}
+            />
+          ) : (
+            <EmptyState
+              icon="cameraOff"
+              title="No cameras match"
+              message="Try a different filter, or add a new camera to your account."
+            />
+          )
         }
         renderItem={({ item }) => (
           <CameraGridCard
@@ -192,9 +203,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontSize: 26 },
-  addButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  chip: { borderWidth: 1, paddingVertical: 8, paddingHorizontal: 14 },
-  chipLabel: { fontSize: 12.5 },
   thumb: { height: 104, padding: 8, justifyContent: 'space-between' },
   thumbTopRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   offlineOverlay: {

@@ -7,6 +7,10 @@ import { useTheme } from '@/theme';
 import { Icon, IconName } from '@/components/Icon';
 import { Card, ToggleSwitch, ConfirmationDialog } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
+import { useAuth } from '@/core/auth/AuthContext';
+import { registerForPushToken } from '@/services/push/registerForPushToken';
+import { deletePushToken, registerPushToken } from '@/services/api/notifications.api';
+import { getInitials } from '@/utils/format';
 import type { ProfileStackParamList } from '@/core/navigation/types';
 
 type Nav = NativeStackNavigationProp<ProfileStackParamList, 'ProfileHome'>;
@@ -16,9 +20,38 @@ export function ProfileHomeScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const cameras = useCameraStore((s) => s.cameras);
+  const { user, signOut } = useAuth();
   const [pushEnabled, setPushEnabled] = useState(true);
+  const [pushRegistration, setPushRegistration] = useState<{
+    platform: 'ios' | 'android' | 'web';
+    token: string;
+  } | null>(null);
   const [biometricLock, setBiometricLock] = useState(true);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+
+  const handlePushToggle = async (enabled: boolean) => {
+    setPushEnabled(enabled);
+    if (enabled) {
+      const registration = await registerForPushToken();
+      if (!registration) {
+        setPushEnabled(false);
+        return;
+      }
+      try {
+        await registerPushToken(registration.platform, registration.token);
+        setPushRegistration(registration);
+      } catch {
+        setPushEnabled(false);
+      }
+    } else if (pushRegistration) {
+      try {
+        await deletePushToken(pushRegistration.platform, pushRegistration.token);
+      } catch {
+        // best-effort — the token will simply go stale server-side
+      }
+      setPushRegistration(null);
+    }
+  };
 
   return (
     <View
@@ -43,7 +76,7 @@ export function ProfileHomeScreen() {
                 { fontFamily: fontFamily.displaySemibold, color: colors.brand },
               ]}
             >
-              SV
+              {getInitials(user?.name)}
             </Text>
           </View>
           <View>
@@ -53,7 +86,7 @@ export function ProfileHomeScreen() {
                 { fontFamily: fontFamily.displaySemibold, color: colors.textPrimary },
               ]}
             >
-              Vann Soklay
+              {user?.name ?? '—'}
             </Text>
             <Text
               style={[
@@ -61,7 +94,7 @@ export function ProfileHomeScreen() {
                 { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
               ]}
             >
-              soklayvann@gmail.com
+              {user?.email ?? ''}
             </Text>
           </View>
         </View>
@@ -111,7 +144,7 @@ export function ProfileHomeScreen() {
                 Push notifications
               </Text>
             </View>
-            <ToggleSwitch value={pushEnabled} onValueChange={setPushEnabled} />
+            <ToggleSwitch value={pushEnabled} onValueChange={handlePushToggle} />
           </View>
         </SettingsSection>
 
@@ -160,7 +193,10 @@ export function ProfileHomeScreen() {
         message="You'll need to sign back in to view your cameras and receive alerts."
         confirmLabel="Sign out"
         onCancel={() => setConfirmSignOut(false)}
-        onConfirm={() => setConfirmSignOut(false)}
+        onConfirm={() => {
+          setConfirmSignOut(false);
+          signOut().catch(() => {});
+        }}
       />
     </View>
   );

@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { TagGroup } from 'heroui-native';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
-import { Card, EmptyState } from '@/components';
+import { Card, EmptyState, ErrorState } from '@/components';
 import { useEventStore } from '@/store/useEventStore';
 import { EVENT_TYPE_ICON, EVENT_TYPE_LABEL, severityColor } from '@/utils/eventMeta';
 import { formatEventTime, groupByDay } from '@/utils/format';
@@ -23,11 +24,20 @@ const FILTERS: { key: FilterType; label: string }[] = [
 ];
 
 export function EventsFeedScreen() {
-  const { colors, spacing, radii, fontFamily } = useTheme();
+  const { colors, spacing, fontFamily } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const events = useEventStore((s) => s.events);
+  const status = useEventStore((s) => s.status);
+  const error = useEventStore((s) => s.error);
+  const fetchEvents = useEventStore((s) => s.fetchEvents);
   const [filter, setFilter] = useState<FilterType>('all');
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchEvents({ limit: 100 });
+    }, [fetchEvents]),
+  );
 
   const filtered = filter === 'all' ? events : events.filter((e) => e.type === filter);
   const sections = useMemo(
@@ -52,57 +62,54 @@ export function EventsFeedScreen() {
         Events
       </Text>
 
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={FILTERS}
-        keyExtractor={(f) => f.key}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.md,
-          gap: spacing.xs,
-          paddingVertical: spacing.sm,
+      {/* HeroUI Native's TagGroup (https://heroui.com/en/docs/native/components/tag-group) */}
+      <TagGroup
+        selectionMode="single"
+        selectedKeys={new Set([filter])}
+        onSelectionChange={(keys) => {
+          const next = Array.from(keys)[0];
+          if (typeof next === 'string') setFilter(next as FilterType);
         }}
-        renderItem={({ item }) => {
-          const active = filter === item.key;
-          return (
-            <Pressable
-              onPress={() => setFilter(item.key)}
-              style={[
-                styles.chip,
-                {
-                  backgroundColor: active ? colors.brandTint : colors.bgElevated2,
-                  borderColor: active ? colors.brand : colors.border,
-                  borderRadius: radii.full,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.chipLabel,
-                  {
-                    fontFamily: fontFamily.bodySemibold,
-                    color: active ? colors.brand : colors.textSecondary,
-                  },
-                ]}
-              >
-                {item.label}
-              </Text>
-            </Pressable>
-          );
-        }}
-      />
+        style={{ paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}
+      >
+        <TagGroup.List>
+          {FILTERS.map((f) => (
+            <TagGroup.Item key={f.key} id={f.key}>
+              {f.label}
+            </TagGroup.Item>
+          ))}
+        </TagGroup.List>
+      </TagGroup>
 
       <SectionList
         sections={sections}
         keyExtractor={(e) => e.id}
         contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.xs, paddingBottom: 140 }}
         stickySectionHeadersEnabled={false}
-        ListEmptyComponent={
-          <EmptyState
-            icon="events"
-            title="No events yet"
-            message="Events from your cameras will show up here as they happen."
+        refreshControl={
+          <RefreshControl
+            refreshing={status === 'loading' && events.length > 0}
+            onRefresh={() => fetchEvents({ limit: 100 })}
+            tintColor={colors.brand}
           />
+        }
+        ListEmptyComponent={
+          status === 'error' ? (
+            <ErrorState
+              icon="alertTriangle"
+              title="Couldn't load events"
+              message={error ?? 'Something went wrong.'}
+              actions={[
+                { label: 'Retry', onPress: () => fetchEvents({ limit: 100 }), primary: true },
+              ]}
+            />
+          ) : (
+            <EmptyState
+              icon="events"
+              title="No events yet"
+              message="Events from your cameras will show up here as they happen."
+            />
+          )
         }
         renderSectionHeader={({ section }) => (
           <Text
@@ -156,8 +163,6 @@ export function EventsFeedScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   title: { fontSize: 26 },
-  chip: { borderWidth: 1, paddingVertical: 8, paddingHorizontal: 14 },
-  chipLabel: { fontSize: 12.5 },
   sectionHeader: {
     fontSize: 11.5,
     textTransform: 'uppercase',

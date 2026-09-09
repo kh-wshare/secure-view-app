@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ListGroup, Separator, Spinner, Tabs } from 'heroui-native';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
-import { Card, StatusBadge, ScreenHeader, ToggleSwitch, ConfirmationDialog } from '@/components';
+import { StatusBadge, ScreenHeader, ToggleSwitch, ConfirmationDialog } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
 import { useEventStore } from '@/store/useEventStore';
 import { EVENT_TYPE_ICON, EVENT_TYPE_LABEL, severityColor } from '@/utils/eventMeta';
@@ -21,10 +22,66 @@ export function CameraDetailsScreen() {
   const { colors, spacing, radii, fontFamily } = useTheme();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Rt>();
-  const camera = useCameraStore((s) => s.getById(route.params.cameraId));
-  const events = useEventStore((s) => s.events.filter((e) => e.cameraId === route.params.cameraId));
+  const cameraId = route.params.cameraId;
+  const camera = useCameraStore((s) => s.getById(cameraId));
+  const fetchCamera = useCameraStore((s) => s.fetchCamera);
+  const deleteCamera = useCameraStore((s) => s.deleteCamera);
+  const connectCamera = useCameraStore((s) => s.connectCamera);
+  const updateCamera = useCameraStore((s) => s.updateCamera);
+  // Select the raw array (a stable reference the store only replaces on an
+  // actual update) and filter it here instead of inside the selector — a
+  // selector that returns a freshly-allocated array on every call (like
+  // `.filter()` would) breaks React's useSyncExternalStore consistency
+  // check and causes an infinite render loop.
+  const allEvents = useEventStore((s) => s.events);
+  const events = useMemo(
+    () => allEvents.filter((e) => e.cameraId === cameraId),
+    [allEvents, cameraId],
+  );
+  const fetchCameraEvents = useEventStore((s) => s.fetchCameraEvents);
   const [tab, setTab] = useState<Tab>('overview');
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCamera(cameraId);
+      fetchCameraEvents(cameraId, { limit: 20 });
+    }, [cameraId, fetchCamera, fetchCameraEvents]),
+  );
+
+  const handleReconnect = async () => {
+    setReconnecting(true);
+    try {
+      await connectCamera(cameraId);
+    } catch {
+      // Best-effort — the camera simply stays offline; the user can retry.
+    } finally {
+      setReconnecting(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    setConfirmRemove(false);
+    setRemoving(true);
+    try {
+      await deleteCamera(cameraId);
+      navigation.goBack();
+    } catch {
+      setRemoving(false);
+    }
+  };
+
+  const handleToggleEnabled = async (enabled: boolean) => {
+    try {
+      await updateCamera(cameraId, { enabled });
+    } catch {
+      // Best-effort — updateCamera leaves the store untouched on failure, so
+      // the controlled ToggleSwitch's `value` naturally snaps back to the
+      // camera's actual state on the next render.
+    }
+  };
 
   if (!camera) {
     return (
@@ -94,57 +151,55 @@ export function CameraDetailsScreen() {
           </LinearGradient>
         </Pressable>
 
-        {/* Segmented tabs */}
-        <View
-          style={[
-            styles.segmentWrap,
-            { backgroundColor: colors.bgElevated2, borderRadius: radii.md },
-          ]}
-        >
-          {tabs.map((t) => {
-            const active = tab === t.key;
-            return (
-              <Pressable
-                key={t.key}
-                onPress={() => setTab(t.key)}
-                style={[
-                  styles.segment,
-                  active && { backgroundColor: colors.bgElevated, borderRadius: radii.sm },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.segmentLabel,
-                    {
-                      fontFamily: fontFamily.bodySemibold,
-                      color: active ? colors.textPrimary : colors.textSecondary,
-                    },
-                  ]}
-                >
-                  {t.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} variant="primary">
+          <Tabs.List>
+            <Tabs.Indicator />
+            {tabs.map((t) => (
+              <Tabs.Trigger key={t.key} value={t.key}>
+                <Tabs.Label className="text-sm">{t.label}</Tabs.Label>
+              </Tabs.Trigger>
+            ))}
+          </Tabs.List>
+        </Tabs>
 
         {tab === 'overview' && (
           <View style={{ gap: spacing.sm }}>
-            <Card style={{ gap: spacing.sm }}>
-              <InfoRow label="Status" value={camera.status === 'online' ? 'Online' : 'Offline'} />
-              <InfoRow label="Recording" value={camera.recording ? 'Active' : 'Off'} />
-              <InfoRow label="Last motion" value={camera.lastMotionText} />
-              <InfoRow
+            <ListGroup>
+              <OverviewRow label="Status" value={titleCase(camera.rawStatus)} />
+              <Separator className="mx-4" />
+              <OverviewRow label="Recording" value={camera.recording ? 'Active' : 'Off'} />
+              <Separator className="mx-4" />
+              <OverviewRow label="Last motion" value={camera.lastMotionText} />
+              <Separator className="mx-4" />
+              <OverviewRow
                 label="PTZ control"
                 value={camera.supportsPtz ? 'Supported' : 'Not available'}
               />
-            </Card>
+            </ListGroup>
+            {camera.status === 'offline' && (
+              <ListGroup>
+                <ListGroup.Item onPress={handleReconnect} disabled={reconnecting}>
+                  <ListGroup.ItemPrefix>
+                    {reconnecting ? (
+                      <Spinner size="sm" color={colors.brand} />
+                    ) : (
+                      <Icon name="restart" size={18} color={colors.brand} />
+                    )}
+                  </ListGroup.ItemPrefix>
+                  <ListGroup.ItemContent>
+                    <ListGroup.ItemTitle style={{ color: colors.brand }}>
+                      {reconnecting ? 'Reconnecting…' : 'Reconnect camera'}
+                    </ListGroup.ItemTitle>
+                  </ListGroup.ItemContent>
+                </ListGroup.Item>
+              </ListGroup>
+            )}
           </View>
         )}
 
         {tab === 'events' && (
           <View style={{ gap: spacing.xs }}>
-            {events.length === 0 && (
+            {events.length === 0 ? (
               <Text
                 style={{
                   fontFamily: fontFamily.bodyRegular,
@@ -154,92 +209,80 @@ export function CameraDetailsScreen() {
               >
                 No events recorded for this camera yet.
               </Text>
+            ) : (
+              <ListGroup>
+                {events.map((event, index) => {
+                  const { fg, tint } = severityColor(colors, event.severity);
+                  return (
+                    <React.Fragment key={event.id}>
+                      {index > 0 && <Separator className="mx-4" />}
+                      <ListGroup.Item disabled>
+                        <ListGroup.ItemPrefix>
+                          <View style={[styles.eventIconWrap, { backgroundColor: tint }]}>
+                            <Icon name={EVENT_TYPE_ICON[event.type]} size={16} color={fg} />
+                          </View>
+                        </ListGroup.ItemPrefix>
+                        <ListGroup.ItemContent>
+                          <ListGroup.ItemTitle>{EVENT_TYPE_LABEL[event.type]}</ListGroup.ItemTitle>
+                          <ListGroup.ItemDescription>
+                            {formatRelativeMinutes(event.occurredAt)}
+                          </ListGroup.ItemDescription>
+                        </ListGroup.ItemContent>
+                      </ListGroup.Item>
+                    </React.Fragment>
+                  );
+                })}
+              </ListGroup>
             )}
-            {events.map((event) => {
-              const { fg, tint } = severityColor(colors, event.severity);
-              return (
-                <Card key={event.id} style={styles.eventRow}>
-                  <View style={[styles.eventIconWrap, { backgroundColor: tint }]}>
-                    <Icon name={EVENT_TYPE_ICON[event.type]} size={16} color={fg} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={[
-                        styles.eventTitle,
-                        { fontFamily: fontFamily.bodySemibold, color: colors.textPrimary },
-                      ]}
-                    >
-                      {EVENT_TYPE_LABEL[event.type]}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.eventMeta,
-                        { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
-                      ]}
-                    >
-                      {formatRelativeMinutes(event.occurredAt)}
-                    </Text>
-                  </View>
-                </Card>
-              );
-            })}
           </View>
         )}
 
         {tab === 'recordings' && (
-          <Pressable onPress={() => navigation.navigate('Recordings', { cameraId: camera.id })}>
-            <Card style={styles.linkRow}>
-              <Icon name="film" size={18} color={colors.textPrimary} />
-              <Text
-                style={[
-                  styles.linkLabel,
-                  { fontFamily: fontFamily.bodySemibold, color: colors.textPrimary },
-                ]}
-              >
-                View all recordings
-              </Text>
-              <Icon name="chevronRight" size={16} color={colors.textTertiary} />
-            </Card>
-          </Pressable>
+          <ListGroup>
+            <ListGroup.Item
+              onPress={() => navigation.navigate('Recordings', { cameraId: camera.id })}
+            >
+              <ListGroup.ItemPrefix>
+                <Icon name="film" size={18} color={colors.textPrimary} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>View all recordings</ListGroup.ItemTitle>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </ListGroup>
         )}
 
         {tab === 'settings' && (
           <View style={{ gap: spacing.sm }}>
-            <Card style={styles.settingRow}>
-              <Text
-                style={[
-                  styles.settingLabel,
-                  { fontFamily: fontFamily.bodyMedium, color: colors.textPrimary },
-                ]}
-              >
-                Continuous recording
-              </Text>
-              <ToggleSwitch value={camera.recording} onValueChange={() => {}} />
-            </Card>
-            <Card style={styles.settingRow}>
-              <Text
-                style={[
-                  styles.settingLabel,
-                  { fontFamily: fontFamily.bodyMedium, color: colors.textPrimary },
-                ]}
-              >
-                Motion alerts
-              </Text>
-              <ToggleSwitch value={camera.motionRecent} onValueChange={() => {}} />
-            </Card>
-            <Pressable onPress={() => setConfirmRemove(true)}>
-              <Card style={[styles.settingRow, { borderColor: colors.live }]}>
-                <Text
-                  style={[
-                    styles.settingLabel,
-                    { fontFamily: fontFamily.bodySemibold, color: colors.live },
-                  ]}
-                >
-                  Remove camera
-                </Text>
-                <Icon name="trash" size={17} color={colors.live} />
-              </Card>
-            </Pressable>
+            <ListGroup>
+              <ListGroup.Item disabled>
+                <ListGroup.ItemContent>
+                  <ListGroup.ItemTitle>Camera enabled</ListGroup.ItemTitle>
+                </ListGroup.ItemContent>
+                <ListGroup.ItemSuffix>
+                  <ToggleSwitch
+                    value={camera.rawStatus !== 'DISABLED'}
+                    onValueChange={handleToggleEnabled}
+                  />
+                </ListGroup.ItemSuffix>
+              </ListGroup.Item>
+              <Separator className="mx-4" />
+              <ListGroup.Item onPress={() => setConfirmRemove(true)} disabled={removing}>
+                <ListGroup.ItemPrefix>
+                  {removing ? (
+                    <Spinner size="sm" color={colors.live} />
+                  ) : (
+                    <Icon name="trash" size={17} color={colors.live} />
+                  )}
+                </ListGroup.ItemPrefix>
+                <ListGroup.ItemContent>
+                  <ListGroup.ItemTitle style={{ color: colors.live }}>
+                    {removing ? 'Removing…' : 'Remove camera'}
+                  </ListGroup.ItemTitle>
+                </ListGroup.ItemContent>
+              </ListGroup.Item>
+            </ListGroup>
           </View>
         )}
       </ScrollView>
@@ -250,36 +293,31 @@ export function CameraDetailsScreen() {
         message={`${camera.name} will be removed from your account. Recorded footage already saved will not be deleted.`}
         confirmLabel="Remove"
         onCancel={() => setConfirmRemove(false)}
-        onConfirm={() => {
-          setConfirmRemove(false);
-          navigation.goBack();
-        }}
+        onConfirm={handleRemove}
       />
     </View>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function titleCase(value: string): string {
+  return value.charAt(0) + value.slice(1).toLowerCase();
+}
+
+function OverviewRow({ label, value }: { label: string; value: string }) {
   const { colors, fontFamily } = useTheme();
   return (
-    <View style={styles.infoRow}>
-      <Text
-        style={[
-          styles.infoLabel,
-          { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
-        ]}
-      >
-        {label}
-      </Text>
-      <Text
-        style={[
-          styles.infoValue,
-          { fontFamily: fontFamily.bodySemibold, color: colors.textPrimary },
-        ]}
-      >
-        {value}
-      </Text>
-    </View>
+    <ListGroup.Item disabled>
+      <ListGroup.ItemContent>
+        <ListGroup.ItemTitle>{label}</ListGroup.ItemTitle>
+      </ListGroup.ItemContent>
+      <ListGroup.ItemSuffix>
+        <Text
+          style={{ fontFamily: fontFamily.bodySemibold, fontSize: 13, color: colors.textPrimary }}
+        >
+          {value}
+        </Text>
+      </ListGroup.ItemSuffix>
+    </ListGroup.Item>
   );
 }
 
@@ -302,13 +340,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segmentWrap: { flexDirection: 'row', padding: 3 },
-  segment: { flex: 1, paddingVertical: 8, alignItems: 'center' },
-  segmentLabel: { fontSize: 12 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  infoLabel: { fontSize: 12.5 },
-  infoValue: { fontSize: 12.5 },
-  eventRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
   eventIconWrap: {
     width: 32,
     height: 32,
@@ -316,10 +347,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  eventTitle: { fontSize: 13 },
-  eventMeta: { fontSize: 11, marginTop: 1 },
-  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  linkLabel: { flex: 1, fontSize: 13.5 },
-  settingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  settingLabel: { fontSize: 13.5 },
 });

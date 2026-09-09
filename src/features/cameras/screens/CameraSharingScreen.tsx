@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { Avatar, Button, ListGroup, Separator } from 'heroui-native';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
-import { Card, PrimaryButton, ScreenHeader, ConfirmationDialog } from '@/components';
+import { EmptyState, PrimaryButton, ScreenHeader, ConfirmationDialog } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
 import { mockSharedUsers } from '@/services/mock/sharedUsers.mock';
 import type { CamerasStackParamList } from '@/core/navigation/types';
@@ -12,7 +13,7 @@ import type { SharedUser } from '@/types/domain';
 type Rt = RouteProp<CamerasStackParamList, 'CameraSharing'>;
 
 export function CameraSharingScreen() {
-  const { colors, spacing, radii, fontFamily } = useTheme();
+  const { colors, spacing, fontFamily } = useTheme();
   const navigation = useNavigation();
   const route = useRoute<Rt>();
   const camera = useCameraStore((s) => s.getById(route.params.cameraId));
@@ -33,72 +34,61 @@ export function CameraSharingScreen() {
         onBack={() => navigation.goBack()}
       />
 
-      <FlatList
-        data={users}
-        keyExtractor={(u) => u.id}
-        contentContainerStyle={{ padding: spacing.md, gap: spacing.sm, paddingBottom: 60 }}
-        ListHeaderComponent={
-          <Text
-            style={[
-              styles.intro,
-              {
-                fontFamily: fontFamily.bodyRegular,
-                color: colors.textSecondary,
-                marginBottom: spacing.md,
-              },
-            ]}
-          >
-            People with access can view live footage and receive alerts from{' '}
-            {camera?.name ?? 'this camera'}.
-          </Text>
-        }
-        ListFooterComponent={<PrimaryButton label="Invite someone" onPress={() => {}} />}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        renderItem={({ item }) => (
-          <Card style={styles.row}>
-            <View
-              style={[
-                styles.avatar,
-                { backgroundColor: item.avatarTint + '2A', borderRadius: radii.full },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.avatarText,
-                  { color: item.avatarTint, fontFamily: fontFamily.bodySemibold },
-                ]}
-              >
-                {item.initials}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  styles.name,
-                  { fontFamily: fontFamily.bodySemibold, color: colors.textPrimary },
-                ]}
-              >
-                {item.name}
-              </Text>
-              <Text
-                style={[
-                  styles.access,
-                  { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
-                ]}
-              >
-                {item.accessSummary}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => setPendingRemoval(item)}
-              hitSlop={8}
-              accessibilityLabel={`Remove ${item.name}`}
-            >
-              <Icon name="trash" size={17} color={colors.live} />
-            </Pressable>
-          </Card>
+      <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md, flexGrow: 1 }}>
+        <Text
+          style={[
+            styles.intro,
+            { fontFamily: fontFamily.bodyRegular, color: colors.textSecondary },
+          ]}
+        >
+          People with access can view live footage and receive alerts from{' '}
+          {camera?.name ?? 'this camera'}.
+        </Text>
+
+        {users.length === 0 ? (
+          <EmptyState
+            icon="share"
+            title="No one has access yet"
+            message="Invite someone to let them view this camera's live footage and alerts."
+          />
+        ) : (
+          <ListGroup>
+            {users.map((item, index) => (
+              <React.Fragment key={item.id}>
+                {index > 0 && <Separator className="mx-4" />}
+                <ListGroup.Item disabled>
+                  <ListGroup.ItemPrefix>
+                    <Avatar style={{ backgroundColor: item.avatarTint + '2A' }}>
+                      <Avatar.Fallback textProps={{ style: { color: item.avatarTint } }}>
+                        {item.initials}
+                      </Avatar.Fallback>
+                    </Avatar>
+                  </ListGroup.ItemPrefix>
+                  <ListGroup.ItemContent>
+                    <ListGroup.ItemTitle>{item.name}</ListGroup.ItemTitle>
+                    <ListGroup.ItemDescription>{item.accessSummary}</ListGroup.ItemDescription>
+                  </ListGroup.ItemContent>
+                  <ListGroup.ItemSuffix>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      isIconOnly
+                      onPress={() => setPendingRemoval(item)}
+                      accessibilityLabel={`Remove ${item.name}`}
+                    >
+                      <Icon name="trash" size={16} color={colors.live} />
+                    </Button>
+                  </ListGroup.ItemSuffix>
+                </ListGroup.Item>
+              </React.Fragment>
+            ))}
+          </ListGroup>
         )}
-      />
+
+        <View style={{ marginTop: 'auto' }}>
+          <PrimaryButton label="Invite someone" onPress={() => {}} />
+        </View>
+      </ScrollView>
 
       <ConfirmationDialog
         visible={pendingRemoval !== null}
@@ -119,9 +109,4 @@ export function CameraSharingScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   intro: { fontSize: 12.5, lineHeight: 18 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  avatar: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 13 },
-  name: { fontSize: 13.5 },
-  access: { fontSize: 11.5, marginTop: 1 },
 });

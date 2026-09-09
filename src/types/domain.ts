@@ -5,12 +5,30 @@ export type Camera = {
   name: string;
   location: string;
   status: CameraStatus;
+  /** Exact server status (`PROVISIONING` | `ONLINE` | `OFFLINE` | `DISABLED`) for screens that need finer detail than the online/offline split above. */
+  rawStatus: string;
+  deviceId: string | null;
+  motionSensitivity: number;
   recording: boolean;
   motionRecent: boolean;
   lastMotionText: string;
+  /** Client-only, persisted locally (AsyncStorage) — there is no favorite field on the API. */
   favorited: boolean;
   supportsPtz: boolean;
   thumbnailGradient: [string, string];
+};
+
+export type UserRole = string;
+export type UserStatus = string;
+
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type EventType =

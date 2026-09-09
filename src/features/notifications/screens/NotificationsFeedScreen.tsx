@@ -1,11 +1,11 @@
-import React, { useMemo } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '@/theme';
 import { Icon } from '@/components/Icon';
-import { Card, EmptyState } from '@/components';
+import { Card, EmptyState, ErrorState } from '@/components';
 import { useNotificationStore } from '@/store/useNotificationStore';
 import { useEventStore } from '@/store/useEventStore';
 import { EVENT_TYPE_ICON } from '@/utils/eventMeta';
@@ -20,10 +20,19 @@ export function NotificationsFeedScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<Nav>();
   const notifications = useNotificationStore((s) => s.notifications);
+  const status = useNotificationStore((s) => s.status);
+  const error = useNotificationStore((s) => s.error);
+  const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
   const toggleRead = useNotificationStore((s) => s.toggleRead);
   const remove = useNotificationStore((s) => s.remove);
   const markAllRead = useNotificationStore((s) => s.markAllRead);
   const events = useEventStore((s) => s.events);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchNotifications({ limit: 100 });
+    }, [fetchNotifications]),
+  );
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -67,12 +76,34 @@ export function NotificationsFeedScreen() {
         keyExtractor={(n) => n.id}
         contentContainerStyle={{ padding: spacing.md, paddingBottom: 140 }}
         stickySectionHeadersEnabled={false}
-        ListEmptyComponent={
-          <EmptyState
-            icon="bell"
-            title="You're all caught up"
-            message="New alerts from your cameras will appear here."
+        refreshControl={
+          <RefreshControl
+            refreshing={status === 'loading' && notifications.length > 0}
+            onRefresh={() => fetchNotifications({ limit: 100 })}
+            tintColor={colors.brand}
           />
+        }
+        ListEmptyComponent={
+          status === 'error' ? (
+            <ErrorState
+              icon="alertTriangle"
+              title="Couldn't load notifications"
+              message={error ?? 'Something went wrong.'}
+              actions={[
+                {
+                  label: 'Retry',
+                  onPress: () => fetchNotifications({ limit: 100 }),
+                  primary: true,
+                },
+              ]}
+            />
+          ) : (
+            <EmptyState
+              icon="bell"
+              title="You're all caught up"
+              message="New alerts from your cameras will appear here."
+            />
+          )
         }
         renderSectionHeader={({ section }) => (
           <Text

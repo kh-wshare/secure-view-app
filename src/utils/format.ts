@@ -49,6 +49,16 @@ export function formatRelativeMinutes(iso: string): string {
   return `${Math.round(hours / 24)}d ago`;
 }
 
+/** "Vann Soklay" -> "VS" (first letter of up to the first two words). Falls back to "?" for an empty/missing name. */
+export function getInitials(name: string | undefined | null): string {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return parts
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('');
+}
+
 /** Groups an array by the result of formatDayGroup(), preserving day order of first appearance. */
 export function groupByDay<T extends { occurredAt: string }>(
   items: T[],

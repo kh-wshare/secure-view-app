@@ -1,20 +1,42 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import type { RTCVideoViewProps } from 'react-native-webrtc';
 import { useTheme } from '@/theme';
 import { Icon, IconName } from '@/components/Icon';
 import { StatusBadge } from '@/components';
 import { useCameraStore } from '@/store/useCameraStore';
+import { useWhepStream } from '../hooks/useWhepStream';
+import { isWebrtcAvailable } from '../isWebrtcAvailable';
 import type { HomeStackParamList } from '@/core/navigation/types';
 
 type Rt = RouteProp<HomeStackParamList, 'LiveView'>;
 
 /**
- * Full-screen live view. This is a functional shell wired to real camera
- * data and controls (mute, speaker, record, PTZ, close) — the actual video
- * pipeline is a placeholder gradient until a streaming SDK is integrated.
+ * `react-native-webrtc` throws immediately when imported without its native
+ * module present (Expo Go), so `RTCView` — like the peer connection in
+ * `useWhepStream` — is loaded lazily via `require()` inside the component
+ * instead of a static top-level `import`. A static import here would crash
+ * every screen in every stack at boot, since React Navigation eagerly
+ * imports every registered screen component regardless of whether it's ever
+ * rendered.
+ */
+function loadRTCView(): React.ComponentType<RTCVideoViewProps> | null {
+  if (!isWebrtcAvailable()) return null;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('react-native-webrtc').RTCView;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Full-screen live view. Negotiates a real WHEP session via `useWhepStream`
+ * once the camera is online; falls back to a gradient placeholder while
+ * connecting, on error, or for an offline camera (nothing to stream yet).
  */
 export function LiveViewScreen() {
   const { spacing, radii, fontFamily } = useTheme();
@@ -25,6 +47,19 @@ export function LiveViewScreen() {
   const [muted, setMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(true);
   const [recording, setRecording] = useState(camera?.recording ?? false);
+  const [RTCViewComponent] = useState(() => loadRTCView());
+
+  const {
+    status: streamStatus,
+    error: streamError,
+    remoteStream,
+  } = useWhepStream(route.params.cameraId, camera?.status === 'online');
+
+  useEffect(() => {
+    remoteStream?.getAudioTracks().forEach((track) => {
+      track.enabled = speakerOn;
+    });
+  }, [remoteStream, speakerOn]);
 
   if (!camera) {
     return (
@@ -36,7 +71,44 @@ export function LiveViewScreen() {
 
   return (
     <View style={styles.screen}>
-      <LinearGradient colors={camera.thumbnailGradient} style={StyleSheet.absoluteFill} />
+      {streamStatus === 'connected' && remoteStream && RTCViewComponent ? (
+        <RTCViewComponent
+          streamURL={remoteStream.toURL()}
+          style={StyleSheet.absoluteFill}
+          objectFit="cover"
+        />
+      ) : (
+        <LinearGradient colors={camera.thumbnailGradient} style={StyleSheet.absoluteFill} />
+      )}
+
+      {camera.status === 'online' && streamStatus === 'connecting' && (
+        <View style={[StyleSheet.absoluteFill, styles.centerOverlay]} pointerEvents="none">
+          <ActivityIndicator size="large" color="#fff" />
+        </View>
+      )}
+
+      {camera.status === 'online' && streamStatus === 'unavailable' && (
+        <View style={[StyleSheet.absoluteFill, styles.centerOverlay]} pointerEvents="none">
+          <Icon name="alertTriangle" size={24} color="#fff" />
+          <Text style={styles.streamErrorText}>
+            Live streaming needs a development build — it isn't available in Expo Go.
+          </Text>
+        </View>
+      )}
+
+      {camera.status === 'online' && streamStatus === 'error' && (
+        <View style={[StyleSheet.absoluteFill, styles.centerOverlay]} pointerEvents="none">
+          <Icon name="alertTriangle" size={24} color="#fff" />
+          <Text style={styles.streamErrorText}>{streamError ?? 'Unable to load the stream.'}</Text>
+        </View>
+      )}
+
+      {camera.status === 'offline' && (
+        <View style={[StyleSheet.absoluteFill, styles.centerOverlay]} pointerEvents="none">
+          <Icon name="cameraOff" size={24} color="rgba(255,255,255,0.85)" />
+          <Text style={styles.streamErrorText}>This camera is offline.</Text>
+        </View>
+      )}
 
       <View
         style={[
@@ -158,6 +230,13 @@ function ControlButton({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000' },
   notFound: { flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' },
+  centerOverlay: { alignItems: 'center', justifyContent: 'center', gap: 10 },
+  streamErrorText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12.5,
+    textAlign: 'center',
+    paddingHorizontal: 32,
+  },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   iconButton: {
     width: 38,
